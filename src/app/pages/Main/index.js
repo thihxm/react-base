@@ -20,7 +20,7 @@ function DatePicker({ active, value, onChange, onClose }) {
         clearButtonLabel="Leave date blank"
         showTime
         showClearButton
-        locale="enUS"
+        locale="ptBR"
         timeZone="America/Sao_Paulo"
         value={value}
         onChange={onChange}

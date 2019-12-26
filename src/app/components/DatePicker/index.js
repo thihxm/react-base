@@ -1,5 +1,5 @@
 /*
-  Pipestyle DatePicker fork
+Pipestyle DatePicker fork
 */
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
@@ -33,6 +33,7 @@ import 'pipestyle/lib/utils/moment-locales';
 import 'react-datepicker/dist/react-datepicker.css';
 import './styles.css';
 /* eslint-enable */
+/* eslint-disable react/prop-types */
 
 const ButtonContainer = styled.div`
   display: flex;
@@ -56,15 +57,12 @@ const Header = styled.div`
 
 function formatDate(_ref) {
   const { date, timeZone, locale } = _ref;
-  const formattedDate = formatTZ(new Date(), 'dd-MM-yyyy', {
+  const formattedDate = formatTZ(date || new Date(), 'dd/MM/yyyy', {
     locale: locales[locale],
     timeZone
   });
   console.log(formattedDate);
-  return MomentTimezone(date)
-    .locale(moment(locale))
-    .tz(timeZone)
-    .format('L');
+  return formattedDate;
 }
 
 export default function DatePicker(props) {
@@ -118,28 +116,34 @@ export default function DatePicker(props) {
       setDateText('');
     }
   }
+
   function handleTextChange(e) {
-    const _dateText = e.currentTarget.value;
-    const _date = MomentTimezone(_dateText, ['L', 'l'], moment(locale), true);
+    const newDateText = e.currentTarget.value;
+    const newDate = MomentTimezone(
+      newDateText,
+      ['L', 'l'],
+      moment(locale),
+      true
+    );
 
-    if (_date) {
-      const utcDate = _date.utc();
+    if (newDate) {
+      const utcDate = newDate.utc();
 
-      _date.utc().set({
+      newDate.utc().set({
         hour: utcDate.get('hour'),
         minute: utcDate.get('minute')
       });
     }
 
-    setDateText(_dateText);
-    setDate(_date.isValid() ? _date : date);
+    setDateText(newDateText);
+    setDate(newDate.isValid() ? newDate : date);
   }
 
-  function updateDate(date) {
-    setDate(date);
+  function updateDate(newDate) {
+    setDate(newDate);
     setDateText(
       formatDate({
-        date,
+        newDate,
         timeZone,
         locale
       })
@@ -148,9 +152,9 @@ export default function DatePicker(props) {
   }
 
   function handleKeys(e) {
-    const _date = date || MomentTimezone();
+    const currentDate = date || MomentTimezone();
 
-    onChange(_date);
+    onChange(currentDate);
 
     MomentTimezone.locale(moment(locale));
 
@@ -158,35 +162,35 @@ export default function DatePicker(props) {
 
     switch (e.keyCode) {
       case keyCodes.UP_ARROW:
-        newDate = MomentTimezone(_date).subtract(7, 'days');
+        newDate = MomentTimezone(currentDate).subtract(7, 'days');
         break;
 
       case keyCodes.DOWN_ARROW:
-        newDate = MomentTimezone(_date).add(7, 'days');
+        newDate = MomentTimezone(currentDate).add(7, 'days');
         break;
 
       case keyCodes.LEFT_ARROW:
-        newDate = MomentTimezone(_date).subtract(1, 'days');
+        newDate = MomentTimezone(currentDate).subtract(1, 'days');
         break;
 
       case keyCodes.RIGHT_ARROW:
-        newDate = MomentTimezone(_date).add(1, 'days');
+        newDate = MomentTimezone(currentDate).add(1, 'days');
         break;
 
       case keyCodes.PAGE_UP:
-        newDate = MomentTimezone(_date).subtract(1, 'months');
+        newDate = MomentTimezone(currentDate).subtract(1, 'months');
         break;
 
       case keyCodes.PAGE_DOWN:
-        newDate = MomentTimezone(_date).add(1, 'months');
+        newDate = MomentTimezone(currentDate).add(1, 'months');
         break;
 
       case keyCodes.HOME:
-        newDate = MomentTimezone(_date).startOf('week');
+        newDate = MomentTimezone(currentDate).startOf('week');
         break;
 
       case keyCodes.END:
-        newDate = MomentTimezone(_date).endOf('week');
+        newDate = MomentTimezone(currentDate).endOf('week');
         break;
 
       case keyCodes.ESCAPE:
@@ -231,7 +235,7 @@ export default function DatePicker(props) {
   }, []);
 
   const { mask } = dateMask;
-  const formatChars = (dateMask, ['mask']);
+  const formatChars = mask;
 
   MomentTimezone.locale(moment(locale));
 
@@ -251,6 +255,7 @@ export default function DatePicker(props) {
       <div className="col-md-12 pp-no-padding">
         <div className="col-md-6 pp-no-padding">
           <BaseField label={dateLabel} size="sm">
+            {console.log('aqui', dateText)}
             <MaskedInput
               value={dateText}
               onChange={handleTextChange}
