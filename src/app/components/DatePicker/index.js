@@ -12,7 +12,7 @@ import {
   utcToZonedTime,
   format as formatTZ
 } from 'date-fns-tz';
-import Testlocales from 'date-fns/locale';
+import * as locales from 'date-fns/locale';
 
 import { MdClose } from 'react-icons/md';
 
@@ -54,17 +54,10 @@ const Header = styled.div`
   justify-content: flex-end;
 `;
 
-function convertLocale(locale) {
-  const locales = {
-    ...Testlocales
-  };
-  console.log(locales[locale]);
-}
-
 function formatDate(_ref) {
   const { date, timeZone, locale } = _ref;
   const formattedDate = formatTZ(new Date(), 'dd-MM-yyyy', {
-    locale: ptBR,
+    locale: locales[locale],
     timeZone
   });
   console.log(formattedDate);
@@ -224,7 +217,6 @@ export default function DatePicker(props) {
 
   useEffect(() => {
     if (value) value.locale(moment(locale));
-    convertLocale(locale);
     setDateText(
       value
         ? formatDate({
@@ -321,8 +313,10 @@ export default function DatePicker(props) {
         utcOffset={date && MomentTimezone(date).utcOffset()}
       />
       <ButtonContainer>
-        <Button theme="dark">Cancel</Button>
-        <Button>Save</Button>
+        <Button theme="dark" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={onSave}>Save</Button>
       </ButtonContainer>
       <Separator />
       {showClearButton && (
