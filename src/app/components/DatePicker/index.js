@@ -310,6 +310,7 @@ export default function DatePicker(props) {
         }
         dropdownMode="select"
         onChange={handleChange}
+        locale={locales[locale]}
         timeFormat="p"
         dateFormat="Pp"
         timezone={timeZone}
