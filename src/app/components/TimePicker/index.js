@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { useState, useEffect, useRef } from 'react';
 
 import momentTimezone from 'moment-timezone';
@@ -68,29 +69,37 @@ export default function TimePicker(props) {
     className
   } = props;
 
-  const [date, setDate] = useState(getTimeAndDate().date);
-  const [time, setTime] = useState(getTimeAndDate().time);
-  const [showDropdown, setShowDropdown] = useState(false);
-
-  const mask = timeMask.mask;
-  const formatChars = mask;
+  const { mask } = timeMask;
   const classes = classnames(className, {
     'col-md-6 pp-no-padding': !className
   });
 
+  function getMask() {
+    if (mask) return mask;
+    const enUsFormatMask = '12:34 AM';
+    const otherFormatMask = '12:34';
+    return ['enUS'].includes(locale) ? enUsFormatMask : otherFormatMask;
+  }
+
   function getTimeAndDate() {
-    const time = value ? formatTime(value, timeZone, locale, getMask()) : '';
-    const date = value ? value : undefined;
+    const currentTime = value
+      ? formatTime(value, timeZone, locale, getMask())
+      : '';
+    const currentDate = value || undefined;
     return {
-      time,
-      date
+      currentTime,
+      currentDate
     };
   }
 
+  const [date, setDate] = useState(getTimeAndDate().date);
+  const [time, setTime] = useState(getTimeAndDate().time);
+  const [showDropdown, setShowDropdown] = useState(false);
+
   function updateDateTime() {
     let newDate;
-    let timeMoment = momentTimezone(time, 'LT', true, timeZone);
-    let dateMoment = momentTimezone(date, 'LT', true, timeZone);
+    const timeMoment = momentTimezone(time, 'LT', true, timeZone);
+    const dateMoment = momentTimezone(date, 'LT', true, timeZone);
 
     if (date && dateMoment.isValid()) {
       newDate = dateMoment.set({
@@ -141,23 +150,15 @@ export default function TimePicker(props) {
   }
 
   function onSelect(newDate) {
-    setTime(formatTime(newDate, timezone, locale, getMask()));
+    setTime(formatTime(newDate, timeZone, locale, getMask()));
     setDate(newDate);
     setShowDropdown(false);
 
     if (onChange) onChange(newDate);
   }
 
-  function onChange() {
-    return updateDateTime(time);
-  }
-
   function onFocus() {
     return setShowDropdown(true);
-  }
-
-  function onBlur() {
-    return setShowDropdown(false);
   }
 
   function handleTimeKeys(e) {
@@ -201,13 +202,6 @@ export default function TimePicker(props) {
     return setShowDropdown(false);
   }
 
-  function getMask() {
-    if (mask) return mask;
-    const enUsFormatMask = '12:34 AM';
-    const otherFormatMask = '12:34';
-    return ['enUS'].includes(locale) ? enUsFormatMask : otherFormatMask;
-  }
-
   function getFormatChars() {
     const enUsFormatChars = {
       // enUS
@@ -235,7 +229,7 @@ export default function TimePicker(props) {
   }, [time]);
 
   useEffect(() => {
-    onChange();
+    if (onChange) onChange();
   }, [time, date]);
 
   momentTimezone.locale(moment(locale));
@@ -245,28 +239,23 @@ export default function TimePicker(props) {
   const prevValue = usePrevious(value);
 
   if (value !== prevValue) {
-    const time = getTimeAndDate().time;
-    const date = getTimeAndDate().date;
+    const { currentTime, currentDate } = getTimeAndDate();
 
-    setTime(time);
-    setDate(date);
-    this.setState({
-      time: time,
-      date: date
-    });
+    setTime(currentTime);
+    setDate(currentDate);
   }
 
   return (
     <div className={classes}>
       <BaseField label={label} size={inputSize}>
         <MaskedInput
-          onFocus={this.onFocus}
-          onChange={this.handleChange}
-          onKeyDown={this.handleTimeKeys}
-          onBlur={this.handleBlur}
+          onFocus={onFocus}
+          onChange={handleChange}
+          onKeyDown={handleTimeKeys}
+          onBlur={handleBlur}
           value={time}
-          mask={this.getMask()}
-          formatChars={this.getFormatChars()}
+          mask={getMask()}
+          formatChars={getFormatChars()}
           className="pp-text-uppercase"
           maskChar="_"
         >
@@ -282,7 +271,7 @@ export default function TimePicker(props) {
                 onSelect={onSelect}
                 locale={locale}
                 times={getTimes(props)}
-                timezone={timezone}
+                timezone={timeZone}
                 handleClickOutside={onClickOutside}
               />
             </div>
