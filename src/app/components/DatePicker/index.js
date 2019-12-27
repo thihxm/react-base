@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import ReactDatePicker from 'react-datepicker';
 import styled from 'styled-components';
 import {
-  parseISO,
   parse,
   isValid,
   startOfDay,
@@ -83,7 +82,7 @@ export default function DatePicker(props) {
     onCancel = function onCancel() {},
     onSave = function onSave() {},
     onClose = function onSave() {},
-    today = undefined,
+    today = new Date(),
     dateLabel = '',
     timeZone = 'America/Sao_Paulo'
   } = props;
@@ -268,8 +267,8 @@ export default function DatePicker(props) {
             label={timeLabel}
             value={date}
             onChange={handleChange}
-            start={startOfDay(parseISO(date) || parseISO(today))}
-            end={endOfDay(parseISO(date) || parseISO(today))}
+            start={startOfDay(date || today)}
+            end={endOfDay(date || today)}
             interval={30}
             locale={locale}
             timezone={timeZone}

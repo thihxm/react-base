@@ -6,7 +6,7 @@ import classnames from 'classnames';
 
 import { Dropdown, Anchor } from 'pipestyle';
 
-import { getTime } from 'date-fns';
+import { getTime, differenceInMinutes } from 'date-fns';
 import formatTime from './utils/formatTime';
 
 function TimePickerDropdown(props) {
@@ -19,7 +19,7 @@ function TimePickerDropdown(props) {
   } = props;
   const locale = refLocale === undefined ? 'enUS' : refLocale;
 
-  function onClick({ time }) {
+  function onClick(e, time) {
     return function(e) {
       onSelect(time);
       e.preventDefault();
@@ -31,7 +31,7 @@ function TimePickerDropdown(props) {
       <div>
         {times.map(time => {
           const title = formatTime(time, timeZone, locale);
-          const isActive = value && value.diff(time, 'minutes') === 0;
+          const isActive = value && differenceInMinutes(value, time) === 0;
 
           return (
             <div
