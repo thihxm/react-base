@@ -1,8 +1,6 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useEffect, useRef } from 'react';
 
-import momentTimezone from 'moment-timezone';
-
 import classnames from 'classnames';
 
 import { BaseField, MaskedInput } from 'pipestyle';
@@ -11,27 +9,31 @@ import keyCodes from 'pipestyle/lib/utils/keyCodes';
 
 import regex from 'pipestyle/lib/utils/regex';
 
-import moment from 'pipestyle/lib/utils/moment';
+import {
+  parse,
+  getMinutes,
+  addMinutes,
+  subMinutes,
+  getHours,
+  set,
+  isValid
+} from 'date-fns';
+
+import * as locales from 'date-fns/locale';
 
 import TimePickerDropdown from './TimePickerDropdown';
 
 import formatTime from './utils/formatTime';
 
-import 'pipestyle/lib/utils/moment-locales';
-
 export function getTimes(_ref) {
-  const { start, end, interval, locale, timeZone } = _ref;
-
-  momentTimezone.locale(moment(locale));
-
-  momentTimezone.tz.setDefault(timeZone);
+  const { start, end, interval } = _ref;
 
   const times = [];
   let time = start;
 
   do {
     times.push(time);
-    time = momentTimezone(time).add(interval, 'minutes');
+    time = addMinutes(interval);
   } while (time < end);
 
   return times;
@@ -54,7 +56,7 @@ function usePrevious(value) {
 export default function TimePicker(props) {
   const {
     value = undefined,
-    timeZone = '',
+    timeZone,
     locale = 'enUS',
     onChange = function onChange() {},
     shouldClearDateTime = true,
@@ -98,13 +100,13 @@ export default function TimePicker(props) {
 
   function updateDateTime() {
     let newDate;
-    const timeMoment = momentTimezone(time, 'LT', true, timeZone);
-    const dateMoment = momentTimezone(date, 'LT', true, timeZone);
+    const timeMoment = parse(time, 'H:mm', { timeZone });
+    const dateMoment = parse(date, 'dd/MM/yyyy', { timeZone });
 
-    if (date && dateMoment.isValid()) {
-      newDate = dateMoment.set({
-        hour: timeMoment.get('hour'),
-        minute: timeMoment.get('minute')
+    if (date && isValid(dateMoment)) {
+      newDate = set(dateMoment, {
+        hours: getHours(timeMoment),
+        minutes: getMinutes(timeMoment)
       });
     } else {
       newDate = timeMoment;
@@ -140,9 +142,9 @@ export default function TimePicker(props) {
   }
 
   function handleBlur() {
-    const momentTime = momentTimezone(time, 'LT', moment(locale), true);
+    const momentTime = parse(time, 'H:mm', { locale: locales[locale] });
 
-    if (regex.AT_LEAST_ONE_DIGIT.test(time) && !momentTime.isValid()) {
+    if (regex.AT_LEAST_ONE_DIGIT.test(time) && !isValid(momentTime)) {
       setTime('');
 
       if (onChange) onChange(null);
@@ -165,19 +167,19 @@ export default function TimePicker(props) {
     let newDate;
     let remainder;
     let above;
-    const valueMoment = momentTimezone(value, 'LT', true, timeZone);
+    const valueMoment = parse(value, 'H:mm', { timeZone });
     const currentDate = value ? valueMoment : date;
     if (!currentDate) return;
 
     switch (e.keyCode) {
       case keyCodes.UP_ARROW:
-        remainder = currentDate.minute() % interval || interval;
-        newDate = currentDate.subtract(remainder, 'minutes');
+        remainder = getMinutes(currentDate) % interval || interval;
+        newDate = subMinutes(currentDate, remainder);
         break;
 
       case keyCodes.DOWN_ARROW:
-        above = interval - (currentDate.minute() % interval);
-        newDate = currentDate.add(above, 'minutes');
+        above = interval - (getMinutes(currentDate) % interval);
+        newDate = addMinutes(currentDate, above);
         break;
 
       case keyCodes.ESCAPE:
@@ -221,9 +223,9 @@ export default function TimePicker(props) {
   }
 
   useEffect(() => {
-    const momentTime = momentTimezone(time, 'LT', moment(locale), true);
+    const momentTime = parse(time, 'H:mm', { locale: locales[locale] });
 
-    if (momentTime.isValid()) {
+    if (isValid(momentTime)) {
       updateDateTime(time);
     }
   }, [time]);
@@ -231,10 +233,6 @@ export default function TimePicker(props) {
   useEffect(() => {
     if (onChange) onChange();
   }, [time, date]);
-
-  momentTimezone.locale(moment(locale));
-
-  momentTimezone.tz.setDefault(timeZone);
 
   const prevValue = usePrevious(value);
 
