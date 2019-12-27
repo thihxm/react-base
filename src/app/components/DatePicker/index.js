@@ -1,12 +1,23 @@
 /*
 Pipestyle DatePicker fork
 */
-/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import ReactDatePicker from 'react-datepicker';
-import MomentTimezone from 'moment-timezone';
 import styled from 'styled-components';
-import { parseISO, format, isValid } from 'date-fns';
+import {
+  parseISO,
+  parse,
+  isValid,
+  startOfDay,
+  endOfDay,
+  set,
+  addDays,
+  subDays,
+  addMonths,
+  subMonths,
+  startOfWeek,
+  endOfWeek
+} from 'date-fns';
 import {
   zonedTimeToUtc,
   utcToZonedTime,
@@ -16,24 +27,17 @@ import * as locales from 'date-fns/locale';
 
 import { MdClose } from 'react-icons/md';
 
-import {
-  Button,
-  BaseField,
-  Dropdown,
-  MaskedInput,
-  TimePicker
-} from 'pipestyle';
+import { Button, BaseField, Dropdown, MaskedInput } from 'pipestyle';
 import 'pipestyle/assets/button.css';
 import 'pipestyle/assets/form.css';
 import 'pipestyle/assets/dropdown.css';
 import isEmpty from 'pipestyle/lib/utils/isEmpty';
 import keyCodes from 'pipestyle/lib/utils/keyCodes';
-import moment from 'pipestyle/lib/utils/moment';
-import 'pipestyle/lib/utils/moment-locales';
 import 'react-datepicker/dist/react-datepicker.css';
 import './styles.css';
-/* eslint-enable */
 /* eslint-disable react/prop-types */
+
+import TimePicker from '../TimePicker';
 
 const ButtonContainer = styled.div`
   display: flex;
@@ -61,7 +65,6 @@ function formatDate(_ref) {
     locale: locales[locale],
     timeZone
   });
-  console.log(formattedDate);
   return formattedDate;
 }
 
@@ -112,31 +115,28 @@ export default function DatePicker(props) {
   }
 
   function handleBlur() {
-    if (!MomentTimezone(dateText, ['L', 'l'], moment(locale), true).isValid()) {
+    if (
+      !isValid(parse(dateText, 'dd/MM/yyyy', { locale: locales[locale] })) ||
+      !isValid(parse(dateText, 'd/MM/yyyy', { locale: locales[locale] }))
+    ) {
       setDateText('');
     }
   }
 
   function handleTextChange(e) {
     const newDateText = e.currentTarget.value;
-    const newDate = MomentTimezone(
-      newDateText,
-      ['L', 'l'],
-      moment(locale),
-      true
-    );
+    let newDate = parse(newDateText, 'dd/MM/yyyy', {
+      locale: locales[locale]
+    });
 
     if (newDate) {
-      const utcDate = newDate.utc();
+      const utcDate = zonedTimeToUtc(newDate, timeZone);
 
-      newDate.utc().set({
-        hour: utcDate.get('hour'),
-        minute: utcDate.get('minute')
-      });
+      newDate = set(newDate, utcToZonedTime(utcDate, timeZone));
     }
 
     setDateText(newDateText);
-    setDate(newDate.isValid() ? newDate : date);
+    setDate(isValid(newDate) ? newDate : date);
   }
 
   function updateDate(newDate) {
@@ -152,49 +152,47 @@ export default function DatePicker(props) {
   }
 
   function handleKeys(e) {
-    const currentDate = date || MomentTimezone();
+    const currentDate = date || new Date();
 
     onChange(currentDate);
-
-    MomentTimezone.locale(moment(locale));
 
     let newDate;
 
     switch (e.keyCode) {
       case keyCodes.UP_ARROW:
-        newDate = MomentTimezone(currentDate).subtract(7, 'days');
+        newDate = subDays(currentDate, 7);
         break;
 
       case keyCodes.DOWN_ARROW:
-        newDate = MomentTimezone(currentDate).add(7, 'days');
+        newDate = addDays(currentDate, 7);
         break;
 
       case keyCodes.LEFT_ARROW:
-        newDate = MomentTimezone(currentDate).subtract(1, 'days');
+        newDate = subDays(currentDate, 1);
         break;
 
       case keyCodes.RIGHT_ARROW:
-        newDate = MomentTimezone(currentDate).add(1, 'days');
+        newDate = addDays(currentDate, 1);
         break;
 
       case keyCodes.PAGE_UP:
-        newDate = MomentTimezone(currentDate).subtract(1, 'months');
+        newDate = subMonths(currentDate, 1);
         break;
 
       case keyCodes.PAGE_DOWN:
-        newDate = MomentTimezone(currentDate).add(1, 'months');
+        newDate = addMonths(currentDate, 1);
         break;
 
       case keyCodes.HOME:
-        newDate = MomentTimezone(currentDate).startOf('week');
+        newDate = startOfWeek(currentDate);
         break;
 
       case keyCodes.END:
-        newDate = MomentTimezone(currentDate).endOf('week');
+        newDate = endOfWeek(currentDate);
         break;
 
       case keyCodes.ESCAPE:
-        newDate = MomentTimezone();
+        newDate = new Date();
         break;
 
       default:
@@ -215,12 +213,7 @@ export default function DatePicker(props) {
     return onChange(undefined);
   }
 
-  MomentTimezone.locale(moment(locale));
-
-  MomentTimezone.tz.setDefault(timeZone);
-
   useEffect(() => {
-    if (value) value.locale(moment(locale));
     setDateText(
       value
         ? formatDate({
@@ -237,14 +230,13 @@ export default function DatePicker(props) {
   const { mask } = dateMask;
   const formatChars = mask;
 
-  MomentTimezone.locale(moment(locale));
-
   const fullAriaLabel =
     date &&
     ''.concat(ariaLabel).concat(
-      MomentTimezone(date)
-        .tz(timeZone)
-        .format('LL')
+      formatTZ(date || new Date(), 'dd/MM/yyyy', {
+        locale: locales[locale],
+        timeZone
+      })
     );
 
   return (
@@ -255,7 +247,6 @@ export default function DatePicker(props) {
       <div className="col-md-12 pp-no-padding">
         <div className="col-md-6 pp-no-padding">
           <BaseField label={dateLabel} size="sm">
-            {console.log('aqui', dateText)}
             <MaskedInput
               value={dateText}
               onChange={handleTextChange}
@@ -275,10 +266,10 @@ export default function DatePicker(props) {
         {showTime && (
           <TimePicker
             label={timeLabel}
-            value={MomentTimezone(date)}
+            value={date}
             onChange={handleChange}
-            start={MomentTimezone(date || today).startOf('day')}
-            end={MomentTimezone(date || today).endOf('day')}
+            start={startOfDay(parseISO(date) || parseISO(today))}
+            end={endOfDay(parseISO(date) || parseISO(today))}
             interval={30}
             locale={locale}
             timezone={timeZone}
@@ -302,21 +293,15 @@ export default function DatePicker(props) {
         inline
         showMonthDropdown
         showYearDropdown
-        selected={
-          date &&
-          MomentTimezone(date)
-            .tz(timeZone)
-            .toDate()
-        }
+        selected={date && date}
         dropdownMode="select"
         onChange={handleChange}
         locale={locales[locale]}
         timeFormat="p"
         dateFormat="Pp"
-        timezone={timeZone}
+        timeZone={timeZone}
         dateFormatCalendar=" "
         clearButtonTitle={clearButtonLabel}
-        utcOffset={date && MomentTimezone(date).utcOffset()}
       />
       <ButtonContainer>
         <Button theme="dark" onClick={onCancel}>

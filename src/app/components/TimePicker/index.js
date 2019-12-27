@@ -33,7 +33,7 @@ export function getTimes(_ref) {
 
   do {
     times.push(time);
-    time = addMinutes(interval);
+    time = addMinutes(time, interval);
   } while (time < end);
 
   return times;
@@ -94,13 +94,13 @@ export default function TimePicker(props) {
     };
   }
 
-  const [date, setDate] = useState(getTimeAndDate().date);
-  const [time, setTime] = useState(getTimeAndDate().time);
+  const [date, setDate] = useState(getTimeAndDate().currentDate);
+  const [time, setTime] = useState(getTimeAndDate().currentTime);
   const [showDropdown, setShowDropdown] = useState(false);
 
   function updateDateTime() {
     let newDate;
-    const timeMoment = parse(time, 'H:mm', { timeZone });
+    const timeMoment = parse(time, 'HH:mm', { timeZone });
     const dateMoment = parse(date, 'dd/MM/yyyy', { timeZone });
 
     if (date && isValid(dateMoment)) {
@@ -142,7 +142,7 @@ export default function TimePicker(props) {
   }
 
   function handleBlur() {
-    const momentTime = parse(time, 'H:mm', { locale: locales[locale] });
+    const momentTime = parse(time, 'HH:mm', { locale: locales[locale] });
 
     if (regex.AT_LEAST_ONE_DIGIT.test(time) && !isValid(momentTime)) {
       setTime('');
@@ -167,7 +167,7 @@ export default function TimePicker(props) {
     let newDate;
     let remainder;
     let above;
-    const valueMoment = parse(value, 'H:mm', { timeZone });
+    const valueMoment = parse(value, 'HH:mm', { timeZone });
     const currentDate = value ? valueMoment : date;
     if (!currentDate) return;
 
@@ -205,6 +205,7 @@ export default function TimePicker(props) {
   }
 
   function getFormatChars() {
+    if (!time) return false;
     const enUsFormatChars = {
       // enUS
       1: '[0-1]',
@@ -223,7 +224,7 @@ export default function TimePicker(props) {
   }
 
   useEffect(() => {
-    const momentTime = parse(time, 'H:mm', { locale: locales[locale] });
+    const momentTime = parse(time, 'HH:mm', { locale: locales[locale] });
 
     if (isValid(momentTime)) {
       updateDateTime(time);
@@ -236,12 +237,15 @@ export default function TimePicker(props) {
 
   const prevValue = usePrevious(value);
 
-  if (value !== prevValue) {
-    const { currentTime, currentDate } = getTimeAndDate();
+  useEffect(() => {
+    if (value !== prevValue) {
+      const { currentTime, currentDate } = getTimeAndDate();
+      // const { time: currentTime, date: currentDate } = getTimeAndDate();
 
-    setTime(currentTime);
-    setDate(currentDate);
-  }
+      setTime(currentTime);
+      setDate(currentDate);
+    }
+  });
 
   return (
     <div className={classes}>
@@ -256,25 +260,24 @@ export default function TimePicker(props) {
           formatChars={getFormatChars()}
           className="pp-text-uppercase"
           maskChar="_"
-        >
-          {showDropdown && (
-            <div
-              className="pp-position-absolute"
-              style={{
-                zIndex: 20
-              }}
-            >
-              <TimePickerDropdown
-                value={value}
-                onSelect={onSelect}
-                locale={locale}
-                times={getTimes(props)}
-                timezone={timeZone}
-                handleClickOutside={onClickOutside}
-              />
-            </div>
-          )}
-        </MaskedInput>
+        />
+        {showDropdown && (
+          <div
+            className="pp-position-absolute"
+            style={{
+              zIndex: 20
+            }}
+          >
+            <TimePickerDropdown
+              value={value}
+              onSelect={onSelect}
+              locale={locale}
+              times={getTimes(props)}
+              timezone={timeZone}
+              handleClickOutside={onClickOutside}
+            />
+          </div>
+        )}
       </BaseField>
     </div>
   );
