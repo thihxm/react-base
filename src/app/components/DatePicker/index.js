@@ -67,7 +67,7 @@ function formatDate(_ref) {
 
 export default function DatePicker(props) {
   const {
-    locale = 'ptBR',
+    locale = 'enUS',
     timeLabel = '',
     clearButtonLabel = '',
     ariaLabel = '',
