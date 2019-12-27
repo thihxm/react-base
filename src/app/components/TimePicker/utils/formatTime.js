@@ -1,27 +1,18 @@
-"use strict";
+import { format as formatTZ } from 'date-fns-tz';
+import * as locales from 'date-fns/locale';
 
-var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
-
-exports.__esModule = true;
-exports["default"] = void 0;
-
-var _momentTimezone = _interopRequireDefault(require("moment-timezone"));
-
-var _moment = _interopRequireDefault(require("../../utils/moment"));
-
-require("../../utils/moment-locales.js");
-
-var formatTime = function formatTime(time, timezone) {
-  var locale = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'en-US';
-  var mask = arguments.length > 3 ? arguments[3] : undefined;
-  var text = time.locale((0, _moment["default"])(locale)).tz(timezone).format('LT');
+export default function formatTime(...args) {
+  const { time, timeZone } = args;
+  const locale = args.length > 2 && args[2] !== undefined ? args[2] : 'enUS';
+  const mask = args.length > 3 ? args[3] : undefined;
+  let text = formatTZ(time, 'H:mm', {
+    locale: locales[locale],
+    timeZone
+  });
 
   if (mask && text.length < mask.length) {
-    text = ['en-US'].includes(locale) ? "0".concat(text) : text;
+    text = ['enUS'].includes(locale) ? '0'.concat(text) : text;
   }
 
   return text;
-};
-
-var _default = formatTime;
-exports["default"] = _default;
+}
