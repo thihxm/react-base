@@ -1,376 +1,294 @@
-"use strict";
+import React, { useState, useEffect, useRef } from 'react';
 
-var _interopRequireWildcard = require("@babel/runtime/helpers/interopRequireWildcard");
+import momentTimezone from 'moment-timezone';
 
-var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+import classnames from 'classnames';
 
-exports.__esModule = true;
-exports["default"] = exports.getTimes = void 0;
+import { BaseField, MaskedInput } from 'pipestyle';
 
-var _objectWithoutProperties2 = _interopRequireDefault(require("@babel/runtime/helpers/objectWithoutProperties"));
+import keyCodes from 'pipestyle/lib/utils/keyCodes';
 
-var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
+import regex from 'pipestyle/lib/utils/regex';
 
-var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+import moment from 'pipestyle/lib/utils/moment';
 
-var _possibleConstructorReturn2 = _interopRequireDefault(require("@babel/runtime/helpers/possibleConstructorReturn"));
+import TimePickerDropdown from './TimePickerDropdown';
 
-var _getPrototypeOf2 = _interopRequireDefault(require("@babel/runtime/helpers/getPrototypeOf"));
+import formatTime from './utils/formatTime';
 
-var _assertThisInitialized2 = _interopRequireDefault(require("@babel/runtime/helpers/assertThisInitialized"));
+import 'pipestyle/lib/utils/moment-locales';
 
-var _inherits2 = _interopRequireDefault(require("@babel/runtime/helpers/inherits"));
+export function getTimes(_ref) {
+  const { start, end, interval, locale, timeZone } = _ref;
 
-var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
+  momentTimezone.locale(moment(locale));
 
-var React = _interopRequireWildcard(require("react"));
+  momentTimezone.tz.setDefault(timeZone);
 
-var _momentTimezone = _interopRequireDefault(require("moment-timezone"));
-
-var _classnames = _interopRequireDefault(require("classnames"));
-
-var _BaseField = _interopRequireDefault(require("../BaseField"));
-
-var _MaskedInput = _interopRequireDefault(require("../MaskedInput"));
-
-var _TimePickerDropdown = _interopRequireDefault(require("./TimePickerDropdown"));
-
-var _keyCodes = _interopRequireDefault(require("../utils/keyCodes"));
-
-var _regex = _interopRequireDefault(require("../utils/regex"));
-
-var _formatTime = _interopRequireDefault(require("./utils/formatTime"));
-
-var _moment = _interopRequireDefault(require("../utils/moment"));
-
-require("../utils/moment-locales");
-
-var getTimes = function getTimes(_ref) {
-  var start = _ref.start,
-      end = _ref.end,
-      interval = _ref.interval,
-      locale = _ref.locale,
-      timezone = _ref.timezone;
-
-  _momentTimezone["default"].locale((0, _moment["default"])(locale));
-
-  _momentTimezone["default"].tz.setDefault(timezone);
-
-  var times = [];
-  var time = start;
+  const times = [];
+  let time = start;
 
   do {
     times.push(time);
-    time = (0, _momentTimezone["default"])(time).add(interval, 'minutes');
+    time = momentTimezone(time).add(interval, 'minutes');
   } while (time < end);
 
   return times;
-};
+}
 
-exports.getTimes = getTimes;
+function usePrevious(value) {
+  // The ref object is a generic container whose current property is mutable ...
+  // ... and can hold any value, similar to an instance property on a class
+  const ref = useRef();
 
-var TimePicker =
-/*#__PURE__*/
-function (_React$Component) {
-  (0, _inherits2["default"])(TimePicker, _React$Component);
+  // Store current value in ref
+  useEffect(() => {
+    ref.current = value;
+  }, [value]); // Only re-run if value changes
 
-  function TimePicker(props) {
-    var _this;
+  // Return previous value (happens before update in useEffect above)
+  return ref.current;
+}
 
-    (0, _classCallCheck2["default"])(this, TimePicker);
-    _this = (0, _possibleConstructorReturn2["default"])(this, (0, _getPrototypeOf2["default"])(TimePicker).call(this, props));
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "getTimeAndDate", function () {
-      var _this$props = _this.props,
-          value = _this$props.value,
-          timezone = _this$props.timezone,
-          locale = _this$props.locale;
-      var time = value ? (0, _formatTime["default"])(value, timezone, locale, _this.getMask()) : '';
-      var date = value ? value : undefined;
-      return {
-        time: time,
-        date: date
-      };
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "updateDateTime", function () {
-      var _this$props2 = _this.props,
-          onChange = _this$props2.onChange,
-          timezone = _this$props2.timezone;
-      var _this$state = _this.state,
-          date = _this$state.date,
-          time = _this$state.time;
-      var newDate;
-      var timeMoment = (0, _momentTimezone["default"])(time, 'LT', true, timezone);
-      var dateMoment = (0, _momentTimezone["default"])(date, 'LT', true, timezone);
+export default function TimePicker(props) {
+  const {
+    value = undefined,
+    timeZone = '',
+    locale = 'enUS',
+    onChange = function onChange() {},
+    shouldClearDateTime = true,
+    interval = 30,
+    inputSize = 'sm',
+    timeMask = {
+      mask: null,
+      9: '[0-9]',
+      A: '[a|p|A|P]'
+    },
+    label,
+    className
+  } = props;
 
-      if (date && dateMoment.isValid()) {
-        newDate = dateMoment.set({
-          hour: timeMoment.get('hour'),
-          minute: timeMoment.get('minute')
-        });
-      } else {
-        newDate = timeMoment;
-      }
+  const [date, setDate] = useState(getTimeAndDate().date);
+  const [time, setTime] = useState(getTimeAndDate().time);
+  const [showDropdown, setShowDropdown] = useState(false);
 
-      _this.setState({
-        date: newDate
-      });
+  const mask = timeMask.mask;
+  const formatChars = mask;
+  const classes = classnames(className, {
+    'col-md-6 pp-no-padding': !className
+  });
 
-      if (onChange) onChange(newDate);
-      return newDate;
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "clearDateTime", function () {
-      var _this$props3 = _this.props,
-          onChange = _this$props3.onChange,
-          shouldClearDateTime = _this$props3.shouldClearDateTime;
-
-      if (shouldClearDateTime) {
-        _this.setState({
-          time: '',
-          date: undefined
-        });
-
-        if (onChange) onChange(null);
-      }
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "handleChange", function (_ref2) {
-      var time = _ref2.currentTarget.value;
-      var locale = _this.props.locale;
-
-      if (!_regex["default"].AT_LEAST_ONE_DIGIT.test(time)) {
-        if (!_regex["default"].AT_LEAST_ONE_DIGIT.test(_this.state.time)) {
-          return;
-        }
-
-        _this.clearDateTime();
-      }
-
-      _this.setState({
-        time: time
-      }, function () {
-        var momentTime = (0, _momentTimezone["default"])(_this.state.time, 'LT', (0, _moment["default"])(locale), true);
-
-        if (momentTime.isValid()) {
-          _this.updateDateTime(_this.state.time);
-        }
-      });
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "handleBlur", function () {
-      var _this$props4 = _this.props,
-          onChange = _this$props4.onChange,
-          locale = _this$props4.locale;
-      var time = _this.state.time;
-      var momentTime = (0, _momentTimezone["default"])(time, 'LT', (0, _moment["default"])(locale), true);
-
-      if (_regex["default"].AT_LEAST_ONE_DIGIT.test(time) && !momentTime.isValid()) {
-        _this.setState({
-          time: ''
-        });
-
-        if (onChange) onChange(null);
-      }
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "onSelect", function (newDate) {
-      var _this$props5 = _this.props,
-          timezone = _this$props5.timezone,
-          locale = _this$props5.locale,
-          onChange = _this$props5.onChange;
-
-      _this.setState({
-        time: (0, _formatTime["default"])(newDate, timezone, locale, _this.getMask()),
-        date: newDate,
-        showDropdown: false
-      });
-
-      if (onChange) onChange(newDate);
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "onChange", function () {
-      return _this.updateDateTime(_this.state.time);
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "onFocus", function () {
-      return _this.setState({
-        showDropdown: true
-      });
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "onBlur", function () {
-      return _this.setState({
-        showDropdown: false
-      });
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "handleTimeKeys", function (e) {
-      var newDate;
-      var remainder;
-      var above;
-      var _this$props6 = _this.props,
-          value = _this$props6.value,
-          interval = _this$props6.interval,
-          timezone = _this$props6.timezone,
-          locale = _this$props6.locale;
-      var valueMoment = (0, _momentTimezone["default"])(value, 'LT', true, timezone);
-      var date = value ? valueMoment : _this.state.date;
-      if (!date) return;
-
-      switch (e.keyCode) {
-        case _keyCodes["default"].UP_ARROW:
-          remainder = date.minute() % interval || interval;
-          newDate = date.subtract(remainder, 'minutes');
-          break;
-
-        case _keyCodes["default"].DOWN_ARROW:
-          above = interval - date.minute() % interval;
-          newDate = date.add(above, 'minutes');
-          break;
-
-        case _keyCodes["default"].ESCAPE:
-        case _keyCodes["default"].ENTER:
-          _this.setState({
-            showDropdown: false
-          });
-
-          break;
-
-        default:
-          break;
-      }
-
-      if (newDate) {
-        _this.setState({
-          time: (0, _formatTime["default"])(newDate, timezone, locale),
-          date: newDate
-        }, _this.onChange);
-
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "onClickOutside", function () {
-      return _this.setState({
-        showDropdown: false
-      });
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "getMask", function () {
-      var _this$props7 = _this.props,
-          mask = _this$props7.timeMask.mask,
-          locale = _this$props7.locale;
-      if (mask) return mask;
-      var enUsFormatMask = '12:34 AM';
-      var otherFormatMask = '12:34';
-      return ['en-US'].includes(locale) ? enUsFormatMask : otherFormatMask;
-    });
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "getFormatChars", function () {
-      var locale = _this.props.locale;
-      var time = _this.state.time;
-      var enUsFormatChars = {
-        // en-US
-        1: '[0-1]',
-        2: time.startsWith('1') ? '[0-2]' : '[1-9]',
-        3: '[0-5]',
-        4: '[0-9]',
-        A: '[a|p|A|P]'
-      };
-      var otherFormatChars = {
-        1: '[0-2]',
-        2: time.startsWith('2') ? '[0-3]' : '[0-9]',
-        3: '[0-5]',
-        4: '[0-9]'
-      };
-      return ['en-US'].includes(locale) ? enUsFormatChars : otherFormatChars;
-    });
-    var _locale = props.locale,
-        _timezone = props.timezone;
-
-    _momentTimezone["default"].locale((0, _moment["default"])(_locale));
-
-    _momentTimezone["default"].tz.setDefault(_timezone);
-
-    var _this$getTimeAndDate = _this.getTimeAndDate(),
-        _time = _this$getTimeAndDate.time,
-        _date = _this$getTimeAndDate.date;
-
-    _this.state = {
-      time: _time,
-      date: _date,
-      showDropdown: false
+  function getTimeAndDate() {
+    const time = value ? formatTime(value, timeZone, locale, getMask()) : '';
+    const date = value ? value : undefined;
+    return {
+      time,
+      date
     };
-    return _this;
   }
 
-  (0, _createClass2["default"])(TimePicker, [{
-    key: "componentDidUpdate",
-    value: function componentDidUpdate(prevProps) {
-      if (this.props.value !== prevProps.value) {
-        var _this$getTimeAndDate2 = this.getTimeAndDate(),
-            time = _this$getTimeAndDate2.time,
-            date = _this$getTimeAndDate2.date;
+  function updateDateTime() {
+    let newDate;
+    let timeMoment = momentTimezone(time, 'LT', true, timeZone);
+    let dateMoment = momentTimezone(date, 'LT', true, timeZone);
 
-        this.setState({
-          time: time,
-          date: date
-        });
-      }
-    }
-  }, {
-    key: "render",
-    value: function render() {
-      var _this$props8 = this.props,
-          label = _this$props8.label,
-          value = _this$props8.value,
-          timezone = _this$props8.timezone,
-          locale = _this$props8.locale,
-          inputSize = _this$props8.inputSize,
-          className = _this$props8.className,
-          _this$props8$timeMask = _this$props8.timeMask,
-          mask = _this$props8$timeMask.mask,
-          formatChars = (0, _objectWithoutProperties2["default"])(_this$props8$timeMask, ["mask"]);
-      var _this$state2 = this.state,
-          showDropdown = _this$state2.showDropdown,
-          time = _this$state2.time;
-      var classes = (0, _classnames["default"])(className, {
-        'col-md-6 pp-no-padding': !className
+    if (date && dateMoment.isValid()) {
+      newDate = dateMoment.set({
+        hour: timeMoment.get('hour'),
+        minute: timeMoment.get('minute')
       });
-      return React.createElement("div", {
-        className: classes
-      }, React.createElement(_BaseField["default"], {
-        label: label,
-        size: inputSize
-      }, React.createElement(_MaskedInput["default"], {
-        onFocus: this.onFocus,
-        onChange: this.handleChange,
-        onKeyDown: this.handleTimeKeys,
-        onBlur: this.handleBlur,
-        value: time,
-        mask: this.getMask(),
-        formatChars: this.getFormatChars(),
-        className: "pp-text-uppercase",
-        maskChar: "_"
-      })), showDropdown && React.createElement("div", {
-        className: "pp-position-absolute",
-        style: {
-          zIndex: 20
-        }
-      }, React.createElement(_TimePickerDropdown["default"], {
-        value: value,
-        onSelect: this.onSelect,
-        locale: locale,
-        times: getTimes(this.props),
-        timezone: timezone,
-        handleClickOutside: this.onClickOutside
-      })));
+    } else {
+      newDate = timeMoment;
     }
-  }]);
-  return TimePicker;
-}(React.Component);
 
-exports["default"] = TimePicker;
-(0, _defineProperty2["default"])(TimePicker, "defaultProps", {
-  value: undefined,
-  onChange: function onChange() {},
-  interval: 30,
-  locale: 'en-US',
-  inputSize: 'sm',
-  timeMask: {
-    mask: null,
-    9: '[0-9]',
-    A: '[a|p|A|P]'
-  },
-  shouldClearDateTime: true
-});
+    setDate(newDate);
+
+    if (onChange) onChange(newDate);
+    return newDate;
+  }
+
+  function clearDateTime() {
+    if (shouldClearDateTime) {
+      setTime('');
+      setDate(undefined);
+
+      if (onChange) onChange(null);
+    }
+  }
+
+  function handleChange(e) {
+    const newTime = e.currentTarget.value;
+
+    if (!regex.AT_LEAST_ONE_DIGIT.test(newTime)) {
+      if (!regex.AT_LEAST_ONE_DIGIT.test(time)) {
+        return;
+      }
+
+      clearDateTime();
+    }
+
+    setTime(newTime);
+  }
+
+  function handleBlur() {
+    const momentTime = momentTimezone(time, 'LT', moment(locale), true);
+
+    if (regex.AT_LEAST_ONE_DIGIT.test(time) && !momentTime.isValid()) {
+      setTime('');
+
+      if (onChange) onChange(null);
+    }
+  }
+
+  function onSelect(newDate) {
+    setTime(formatTime(newDate, timezone, locale, getMask()));
+    setDate(newDate);
+    setShowDropdown(false);
+
+    if (onChange) onChange(newDate);
+  }
+
+  function onChange() {
+    return updateDateTime(time);
+  }
+
+  function onFocus() {
+    return setShowDropdown(true);
+  }
+
+  function onBlur() {
+    return setShowDropdown(false);
+  }
+
+  function handleTimeKeys(e) {
+    let newDate;
+    let remainder;
+    let above;
+    const valueMoment = momentTimezone(value, 'LT', true, timeZone);
+    const currentDate = value ? valueMoment : date;
+    if (!currentDate) return;
+
+    switch (e.keyCode) {
+      case keyCodes.UP_ARROW:
+        remainder = currentDate.minute() % interval || interval;
+        newDate = currentDate.subtract(remainder, 'minutes');
+        break;
+
+      case keyCodes.DOWN_ARROW:
+        above = interval - (currentDate.minute() % interval);
+        newDate = currentDate.add(above, 'minutes');
+        break;
+
+      case keyCodes.ESCAPE:
+      case keyCodes.ENTER:
+        setShowDropdown(false);
+        break;
+
+      default:
+        break;
+    }
+
+    if (newDate) {
+      setTime(formatTime(newDate, timeZone, locale));
+      setDate(newDate);
+
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+
+  function onClickOutside() {
+    return setShowDropdown(false);
+  }
+
+  function getMask() {
+    if (mask) return mask;
+    const enUsFormatMask = '12:34 AM';
+    const otherFormatMask = '12:34';
+    return ['enUS'].includes(locale) ? enUsFormatMask : otherFormatMask;
+  }
+
+  function getFormatChars() {
+    const enUsFormatChars = {
+      // enUS
+      1: '[0-1]',
+      2: time.startsWith('1') ? '[0-2]' : '[1-9]',
+      3: '[0-5]',
+      4: '[0-9]',
+      A: '[a|p|A|P]'
+    };
+    const otherFormatChars = {
+      1: '[0-2]',
+      2: time.startsWith('2') ? '[0-3]' : '[0-9]',
+      3: '[0-5]',
+      4: '[0-9]'
+    };
+    return ['enUS'].includes(locale) ? enUsFormatChars : otherFormatChars;
+  }
+
+  useEffect(() => {
+    const momentTime = momentTimezone(time, 'LT', moment(locale), true);
+
+    if (momentTime.isValid()) {
+      updateDateTime(time);
+    }
+  }, [time]);
+
+  useEffect(() => {
+    onChange();
+  }, [time, date]);
+
+  momentTimezone.locale(moment(locale));
+
+  momentTimezone.tz.setDefault(timeZone);
+
+  const prevValue = usePrevious(value);
+
+  if (value !== prevValue) {
+    const time = getTimeAndDate().time;
+    const date = getTimeAndDate().date;
+
+    setTime(time);
+    setDate(date);
+    this.setState({
+      time: time,
+      date: date
+    });
+  }
+
+  return (
+    <div className={classes}>
+      <BaseField label={label} size={inputSize}>
+        <MaskedInput
+          onFocus={this.onFocus}
+          onChange={this.handleChange}
+          onKeyDown={this.handleTimeKeys}
+          onBlur={this.handleBlur}
+          value={time}
+          mask={this.getMask()}
+          formatChars={this.getFormatChars()}
+          className="pp-text-uppercase"
+          maskChar="_"
+        >
+          {showDropdown && (
+            <div
+              className="pp-position-absolute"
+              style={{
+                zIndex: 20
+              }}
+            >
+              <TimePickerDropdown
+                value={value}
+                onSelect={onSelect}
+                locale={locale}
+                times={getTimes(props)}
+                timezone={timezone}
+                handleClickOutside={onClickOutside}
+              />
+            </div>
+          )}
+        </MaskedInput>
+      </BaseField>
+    </div>
+  );
+}
