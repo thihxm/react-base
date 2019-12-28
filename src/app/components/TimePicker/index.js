@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import classnames from 'classnames';
 
@@ -37,20 +37,6 @@ export function getTimes(_ref) {
   } while (time < end);
 
   return times;
-}
-
-function usePrevious(value) {
-  // The ref object is a generic container whose current property is mutable ...
-  // ... and can hold any value, similar to an instance property on a class
-  const ref = useRef();
-
-  // Store current value in ref
-  useEffect(() => {
-    ref.current = value;
-  }, [value]); // Only re-run if value changes
-
-  // Return previous value (happens before update in useEffect above)
-  return ref.current;
 }
 
 export default function TimePicker(props) {
@@ -100,8 +86,8 @@ export default function TimePicker(props) {
 
   function updateDateTime() {
     let newDate;
-    const timeMoment = parse(time, 'HH:mm', { timeZone });
-    const dateMoment = parse(date, 'dd/MM/yyyy', { timeZone });
+    const timeMoment = parse(time, 'HH:mm', new Date(), { timeZone });
+    const dateMoment = parse(date, 'dd/MM/yyyy', new Date(), { timeZone });
 
     if (date && isValid(dateMoment)) {
       newDate = set(dateMoment, {
@@ -142,7 +128,9 @@ export default function TimePicker(props) {
   }
 
   function handleBlur() {
-    const momentTime = parse(time, 'HH:mm', { locale: locales[locale] });
+    const momentTime = parse(time, 'HH:mm', new Date(), {
+      locale: locales[locale]
+    });
 
     if (regex.AT_LEAST_ONE_DIGIT.test(time) && !isValid(momentTime)) {
       setTime('');
@@ -167,8 +155,7 @@ export default function TimePicker(props) {
     let newDate;
     let remainder;
     let above;
-    const valueMoment = parse(value, 'HH:mm', { timeZone });
-    const currentDate = value ? valueMoment : date;
+    const currentDate = value || date;
     if (!currentDate) return;
 
     switch (e.keyCode) {
@@ -224,28 +211,20 @@ export default function TimePicker(props) {
   }
 
   useEffect(() => {
-    const momentTime = parse(time, 'HH:mm', { locale: locales[locale] });
+    const momentTime = parse(time, 'HH:mm', new Date(), {
+      locale: locales[locale]
+    });
 
     if (isValid(momentTime)) {
       updateDateTime(time);
     }
+    // eslint-disable-next-line
   }, [time]);
 
   useEffect(() => {
-    if (onChange) onChange();
+    if (onChange) onChange(date);
+    // eslint-disable-next-line
   }, [time, date]);
-
-  const prevValue = usePrevious(value);
-
-  useEffect(() => {
-    if (value !== prevValue) {
-      const { currentTime, currentDate } = getTimeAndDate();
-      // const { time: currentTime, date: currentDate } = getTimeAndDate();
-
-      setTime(currentTime);
-      setDate(currentDate);
-    }
-  });
 
   return (
     <div className={classes}>
