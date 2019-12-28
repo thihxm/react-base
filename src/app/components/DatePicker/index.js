@@ -115,8 +115,12 @@ export default function DatePicker(props) {
 
   function handleBlur() {
     if (
-      !isValid(parse(dateText, 'dd/MM/yyyy', { locale: locales[locale] })) ||
-      !isValid(parse(dateText, 'd/MM/yyyy', { locale: locales[locale] }))
+      !isValid(
+        parse(dateText, 'dd/MM/yyyy', new Date(), { locale: locales[locale] })
+      ) ||
+      !isValid(
+        parse(dateText, 'd/MM/yyyy', new Date(), { locale: locales[locale] })
+      )
     ) {
       setDateText('');
     }
@@ -124,9 +128,14 @@ export default function DatePicker(props) {
 
   function handleTextChange(e) {
     const newDateText = e.currentTarget.value;
-    let newDate = parse(newDateText, 'dd/MM/yyyy', {
+    if (newDateText.includes('_')) return console.log('Data incompleta');
+    let newDate = parse(newDateText, 'dd/MM/yyyy', new Date(), {
       locale: locales[locale]
     });
+    if (!isValid(newDate)) {
+      e.currentTarget.value = '';
+      return console.log('Data inválida');
+    }
 
     if (newDate) {
       const utcDate = zonedTimeToUtc(newDate, timeZone);
@@ -136,6 +145,7 @@ export default function DatePicker(props) {
 
     setDateText(newDateText);
     setDate(isValid(newDate) ? newDate : date);
+    return true;
   }
 
   function updateDate(newDate) {
@@ -147,6 +157,7 @@ export default function DatePicker(props) {
         locale
       })
     );
+    handleChange(newDate);
     return true;
   }
 
@@ -281,7 +292,7 @@ export default function DatePicker(props) {
         id="calendar"
         style={{
           height: 0,
-          wight: 0,
+          width: 0,
           border: 0
         }}
         tabIndex={0}
@@ -292,7 +303,7 @@ export default function DatePicker(props) {
         inline
         showMonthDropdown
         showYearDropdown
-        selected={date && date}
+        selected={date}
         dropdownMode="select"
         onChange={handleChange}
         locale={locales[locale]}
