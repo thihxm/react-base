@@ -11,7 +11,13 @@ const Wrapper = styled.div`
   display: ${props => (props.active ? 'block' : 'none')};
 `;
 
-function DatePicker({ active, value, onChange, onClose }) {
+const Container = styled.div`
+  display: flex;
+  width: 100%;
+  justify-content: space-evenly;
+`;
+
+function DatePicker({ active, value, onChange, onClose, onSave, onCancel }) {
   return (
     <Wrapper active={active}>
       <MyDatePicker
@@ -25,13 +31,15 @@ function DatePicker({ active, value, onChange, onClose }) {
         value={value}
         onChange={onChange}
         onClose={onClose}
+        onSave={onSave}
+        onCancel={onCancel}
       />
     </Wrapper>
   );
 }
 
 export default function Main() {
-  const [date, setDate] = useState(null);
+  const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(true);
 
   function handleDateChange(value) {
@@ -44,20 +52,21 @@ export default function Main() {
   }
 
   return (
-    <>
-      <DatePicker
-        active={showDatePicker}
-        value={date}
-        onChange={handleDateChange}
-        onClose={toggleDatePicker}
-      />
-      <button
-        style={{ position: 'absolute', right: 0 }}
-        type="button"
-        onClick={toggleDatePicker}
-      >
-        Abir/fechar DatePicker
-      </button>
-    </>
+    <Container>
+      <div>
+        <DatePicker
+          active={showDatePicker}
+          value={date}
+          onChange={handleDateChange}
+          onClose={toggleDatePicker}
+          onCancel={toggleDatePicker}
+        />
+      </div>
+      <div>
+        <button type="button" onClick={toggleDatePicker}>
+          Abir/fechar DatePicker
+        </button>
+      </div>
+    </Container>
   );
 }
